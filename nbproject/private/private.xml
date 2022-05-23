@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project-private xmlns="http://www.netbeans.org/ns/project-private/1">
+    <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
+    <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
+        <group>
+            <file>file:/C:/xampp/htdocs/dv-smpp/application/config/routes.php</file>
+            <file>file:/C:/xampp/htdocs/dv-smpp/application/controllers/smpp_controllers/Manage_dnd.php</file>
+            <file>file:/C:/xampp/htdocs/dv-smpp/application/models/smpp_model/Api_model.php</file>
+            <file>file:/C:/xampp/htdocs/dv-smpp/application/controllers/smpp_controllers/Api_controller.php</file>
+            <file>file:/C:/xampp/htdocs/dv-smpp/application/helpers/custom_helper.php</file>
+            <file>file:/C:/xampp/htdocs/dv-smpp/application/models/smpp_model/Base_model.php</file>
+        </group>
+    </open-files>
+</project-private>

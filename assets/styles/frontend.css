@@ -1,0 +1,50 @@
+* {
+    padding: 0;
+    margin: 0;
+}
+
+html, body {
+    color: #333333;
+    font-size: 12px;
+    font-family: arial, tahoma, sans-serif;
+}
+
+
+/*
+ * common styles
+ */
+
+a { color: #336699; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+
+h1.page-title,
+.page-title
+h2.section-title,
+.section-title{
+    padding: 3px 5px;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: normal;
+    text-align: center;
+    background: #336699;
+}
+
+.main-nav {
+    padding: 3px 5px;
+    color: #ffffff;
+    font-size: 12px;
+    background: #6699cc;
+}
+.main-nav a { color: #ffffff; }
+
+.row-tabe td.text { padding: 0 0 0 5px; }
+
+
+.pagination { margin-bottom: 10px; }
+.pagination ul li { display: inline-block; }
+.pagination ul li a,
+.pagination ul li span {
+    display: block;
+    padding: 3px;
+}

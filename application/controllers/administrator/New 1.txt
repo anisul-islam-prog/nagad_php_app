@@ -1,0 +1,129 @@
+USE [vas_robi]
+GO
+/****** Object:  StoredProcedure [dbo].[sp_gv_update_user_details]    Script Date: 12/14/2016 17:22:42 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[sp_gv_update_user_details]
+	@in_msisdn VARCHAR(20), 
+	@in_cur_q_no INTEGER,
+	@in_q_no INTEGER,
+	@in_ans VARCHAR(10)	
+AS
+
+BEGIN
+	
+	DECLARE @var_tempCount INT;
+	DECLARE @var_addMarks INT;
+	DECLARE @var_totalQ INT;
+	DECLARE @var_isCompleted INT;
+	DECLARE @var_flag INT;
+	DECLARE @ReplyMessage VARCHAR(5000);
+	DECLARE @right_wrong_msg varchar(50);
+	
+	SET @var_tempCount = 0;
+	SET @var_addMarks = 0;
+	SET @var_totalQ = 0;
+	SET @var_isCompleted = 0;
+	SET @var_flag = 0;
+	
+	IF @in_cur_q_no = -1  
+		BEGIN		
+			-- Do Registration
+			--select @var_tempCount=Count(*) from tbl_subscriber_profile where msisdn=@in_msisdn and entertainment=1
+			--IF @var_tempCount <= 0
+			--BEGIN
+			--	select @var_tempCount=Count(*) from tbl_subscriber_profile where msisdn=@in_msisdn;
+			--	IF @var_tempCount <= 0
+			--		insert into tbl_subscriber_profile(msisdn,entertainment) values(@in_msisdn,1);
+			--	ELSE
+			--		update tbl_subscriber_profile set entertainment=1 where msisdn=@in_msisdn;
+			--END
+			
+			insert into vas_robi.dbo.tbl_SyncInbox (Sender,Receiver,ServiceName,ProductID,ServiceID,ActionType,ChannelName)
+			values (@in_msisdn, '8365', 'gyanervandar', '0300403204', '0302000020', 1, 'GvUpdateUserSP')
+			--values (@in_msisdn, '8365', 'gyanervandar', '0300401194', '0302000011', 1, 'GvUpdateUserSP')
+		
+			insert into vas_robi.dbo.tbl_gv_wap_user_history(msisdn) values (@in_msisdn);
+			
+			select @var_tempCount=Count(*) from tbl_subscriber_reply where msisdn=@in_msisdn;
+			IF @var_tempCount <= 0
+				insert into dbo.tbl_subscriber_reply (msisdn,quiztype,prev_question_Id,next_question_Id,
+				totalAttempt,totalCorrect,totalScore,totalWrong,channel) 
+				values (@in_msisdn,'gn',1,2,0,0,0,0,'WAP');
+				
+			INSERT INTO tbl_sub_history(MSISDN,Service_Type,isRegistered,RegMethod) values (@in_msisdn,'START G',1,'WAP');			
+		END;
+	ELSE IF @in_cur_q_no = -2
+		BEGIN		
+			-- Do De-registration
+			
+			insert into vas_robi.dbo.tbl_SyncInbox (Sender,Receiver,ServiceName,ProductID,ServiceID,ActionType,ChannelName)
+			values (@in_msisdn, '8365', 'gyanervandar', '0300403204', '0302000020', 2, 'GvUpdateUserSP');
+			
+			--update vas_robi.dbo.tbl_subscriber_profile set gyanervandar=0 where msisdn=@in_msisdn;
+			insert into tbl_subscriber_profile_wap_history(msisdn,service_name,package_name,totalContent,registration_time,renew_time,validity_date) 
+			select msisdn,service_name,package_name,totalContent,registration_time,renew_time,validity_date from tbl_subscriber_profile_wap where msisdn=@in_msisdn and service_name='gyanervandar';
+
+			delete from tbl_subscriber_profile_wap where msisdn=@in_msisdn and service_name='gyanervandar';
+					
+			INSERT INTO tbl_sub_history(MSISDN,Service_Type,isRegistered,RegMethod) values (@in_msisdn,'STOP WAP',2,'WAP');
+		END;
+	ELSE
+		BEGIN
+			-- Update Registration
+			SELECT @var_tempCount=COUNT(*) FROM tbl_subscriber_reply 
+			WHERE prev_question_Id = @in_cur_q_no AND msisdn = @in_msisdn;
+			
+			IF @var_tempCount > 0 
+				BEGIN
+					SELECT @var_totalQ=max(totalquestion) from vas_robi.dbo.tbl_Quiz_Keyword where quiztype='gn'
+					
+					IF @in_cur_q_no = @var_totalQ 
+						BEGIN
+							SET @var_totalQ = 0;
+							SET @var_isCompleted = 1;
+						END
+					ELSE
+						SET @var_totalQ = @in_cur_q_no;
+					
+					SELECT @var_tempCount=COUNT(*) FROM vas_robi.dbo.tbl_Question_bank
+					WHERE answer = @in_ans AND qid = @in_q_no and quiztype='gn';
+					
+					IF @var_tempCount > 0 
+						BEGIN
+							SET @var_addMarks = 2;
+							SET @var_flag = 1;
+							set @right_wrong_msg = 'Right. ';
+						END
+					else
+						set @right_wrong_msg = 'Wrong. ';
+					
+					UPDATE tbl_subscriber_reply 
+					SET prev_question_Id = @var_totalQ + 1, next_question_Id = @var_totalQ + 2,
+					totalScore = totalScore + @var_addMarks, isCompleted = isCompleted + @var_isCompleted, 
+					totalAttempt = totalAttempt + @var_flag, totalCorrect = totalCorrect + @var_flag, 
+					totalWrong = totalWrong + @var_flag
+					WHERE msisdn = @in_msisdn;
+					
+					-- #FreeSMS to user
+					SELECT @ReplyMessage=question FROM vas_robi.dbo.tbl_Question_bank
+					WHERE qid = @in_q_no+1 and quiztype='gn';
+										
+					SET @ReplyMessage = @right_wrong_msg + @ReplyMessage;
+					SET @ReplyMessage = LEFT(@ReplyMessage,160);
+						
+					--if @ReplyMessage is not null
+					--	INSERT INTO Outbox(Sender, Receiver, Message,SMSCount,Status,Charge,ServiceId,ServiceType,InboxId) 
+					--	VALUES ('8365', @in_msisdn,@ReplyMessage,1,0,'2.3','0302000021','MirSMS',-1);
+						
+				END
+
+			-- ########################################################################################
+			-- qn for wap; its not gn
+			INSERT INTO dbo.tbl_subs_reply_history(msisdn, question_Id, reply, quiztype)
+			VALUES (@in_msisdn,@in_q_no,@in_ans,'qn');
+		END;
+	
+END

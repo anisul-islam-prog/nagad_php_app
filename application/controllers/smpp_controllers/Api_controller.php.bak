@@ -1,0 +1,162 @@
+<?php
+
+if (!defined('BASEPATH'))
+    exit('No direct script access allowed');
+
+class Api_controller extends MY_Controller {
+
+    var $current_page = "Sms_management";
+
+    //var $tbl_user_department = "USERS_DEPARTMENT";
+
+    function __construct() {
+        parent::__construct();
+
+
+
+        $this->load->model('smpp_model/Api_model');
+    }
+
+    public function index() {
+        echo json_encode(array('status' => 'failed'));
+    }
+    
+    function IsNullOrEmptyString($str){
+    return (!isset($str) || trim($str) === '');
+}
+
+    public function outbox_insertion() {
+        $data = json_decode(file_get_contents('php://input'), true);
+
+        //$userMenuTable = $this->config->item('UserMenuTable');
+        $userName = '';
+        $password = '';
+        $message = '';
+        $priority = 1;
+        $msisdn = '';
+        $sender = '';
+        $is_unicode = 0;
+        $sms_type = '';
+
+        if ($this->IsNullOrEmptyString($data['username'])) {
+            echo responsJson(array('status' => 'fail', 'info' => 'User name is empty!'));
+            die();
+        }
+        else{
+            $userName = trim($data['username']);
+        }
+        
+        
+        if ($this->IsNullOrEmptyString($data['password'])) {
+            echo responsJson(array('status' => 'fail', 'info' => 'Password is empty!'));
+            die();
+        }
+        else{
+            $password = trim($data['password']);
+        }
+
+        if ($userName == 'kona' && $password == 'kona1234') {
+
+           
+            
+            if ($this->IsNullOrEmptyString($data['message'])) {
+                echo responsJson(array('status' => 'fail', 'info' => 'Message is empty!'));
+                die();
+            }
+            else{
+                $message = trim($data['message']);
+            }
+             if ($this->IsNullOrEmptyString($data['sender'])) {
+                echo responsJson(array('status' => 'fail', 'info' => 'Masking is empty!'));
+                die();
+            }
+            else{
+                $sender = trim($data['sender']);
+            }
+            if ($this->IsNullOrEmptyString($data['msisdn'])) {
+                echo responsJson(array('status' => 'fail', 'info' => 'Msisdn is empty!'));
+                die();
+            }
+            else{
+                $msisdn = trim($data['msisdn']);
+            }
+            
+             if ($this->IsNullOrEmptyString($data['priority'])) {
+                echo responsJson(array('status' => 'fail', 'info' => 'Priority is empty!'));
+                die();
+            }
+            else{
+                $priority = (int)trim($data['priority']);
+            }
+            
+            if ($this->IsNullOrEmptyString($data['sms_type'])) {
+                echo responsJson(array('status' => 'fail', 'info' => 'Sms type is empty!'));
+                die();
+            }
+            else{
+                $sms_type = trim($data['sms_type']);
+            }
+            
+            if ($this->IsNullOrEmptyString($data['is_unicode'])) {
+                $is_unicode = 0;
+            }
+            else{}
+            {
+                $is_unicode = (int)trim($data['is_unicode']);
+            }
+
+            //detecting outbox table 
+            $sms_table = '';
+
+            if ($sms_type == 'api') {
+                $sms_table = 'OUTBOX_API';
+            } else {
+                $prefix = '';
+                if (strlen($msisdn) == 10) {
+                    $msisdn = '880'.$msisdn;
+                }
+                else if(strlen($msisdn) == 11)
+                {
+                    $msisdn = '88'.$msisdn;
+                }
+                else if(strlen($msisdn) == 13)
+                {
+                    $msisdn = $msisdn;
+                }
+                else{
+                    echo responsJson(array('status' => 'fail', 'info' => 'MSISDN format is wrong!'));
+                die();
+                }
+                
+                $prefix = substr($msisdn, 3, 2);
+
+
+
+                if ($prefix == '18' || $prefix == '16') {
+                    $sms_table = 'OUTBOX_ROBI';
+                } else if ($prefix == '17') {
+                    $sms_table = 'OUTBOX_GP';
+                } else if ($prefix == '19') {
+                    $sms_table = 'OUTBOX_BL';
+                } else if ($prefix == '15') {
+                    $sms_table = 'OUTBOX_TT';
+                }
+            }
+
+            // detecting outbox table finished
+
+
+            $postData = array('SENDER' => $sender, 'RECEIVER' => $msisdn,'MESSAGE' => $message, 'PRIORITY' => $priority,'IS_UNICODE' => $is_unicode);
+            $getData = $this->Api_model->smppInsert($sms_table, $postData);
+            echo responsJson($getData);
+        } else {
+            echo responsJson(array('status' => 'fail', 'info' => 'Authentication failed!'));
+            die();
+        }
+    }
+
+   
+
+}
+
+?>
